@@ -1,5 +1,8 @@
 const STORAGE_KEY = "item-list.tasks.v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const FILTER_SWITCH_MS = 120;
+const COMPACT_LIST_QUERY = "(max-width: 720px)";
+const MAX_VISIBLE_TASKS = 11;
 
 const elements = {
   form: document.querySelector("#taskForm"),
@@ -15,9 +18,11 @@ const elements = {
   doneCount: document.querySelector("#doneCount"),
   urgentCount: document.querySelector("#urgentCount"),
   listTitle: document.querySelector("#listTitle"),
+  listSection: document.querySelector(".list-section"),
   taskList: document.querySelector("#taskList"),
   emptyState: document.querySelector("#emptyState"),
   template: document.querySelector("#taskTemplate"),
+  segmented: document.querySelector(".segmented"),
   filterButtons: document.querySelectorAll("[data-filter]"),
 };
 
@@ -26,6 +31,33 @@ const state = {
   filter: "open",
   activeNoteId: null,
 };
+
+let filterSwitchTimer = null;
+
+function syncListSectionHeight() {
+  if (window.matchMedia(COMPACT_LIST_QUERY).matches) {
+    elements.listSection.style.height = "";
+    elements.taskList.style.height = "";
+    return;
+  }
+
+  const header = elements.listSection.querySelector(".list-sticky-header");
+  const headerHeight = header.getBoundingClientRect().height;
+
+  if (elements.emptyState.hidden) {
+    const rowHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--task-row-height")) || 76;
+    const visibleTaskCount = Math.min(elements.taskList.children.length, MAX_VISIBLE_TASKS);
+    const listHeight = visibleTaskCount * rowHeight;
+    elements.taskList.style.height = `${Math.ceil(listHeight)}px`;
+    elements.listSection.style.height = `${Math.ceil(headerHeight + listHeight)}px`;
+    return;
+  }
+
+  elements.taskList.style.height = "";
+  const emptyHeight = elements.emptyState.getBoundingClientRect().height;
+  const targetHeight = Math.min(headerHeight + emptyHeight, window.innerHeight - 30);
+  elements.listSection.style.height = `${Math.ceil(targetHeight)}px`;
+}
 
 function loadTasks() {
   try {
@@ -173,6 +205,8 @@ function updateSummary() {
 }
 
 function updateFilterTabs() {
+  elements.segmented.dataset.active = state.filter;
+
   elements.filterButtons.forEach((button) => {
     const isActive = button.dataset.filter === state.filter;
     button.classList.toggle("is-active", isActive);
@@ -188,9 +222,10 @@ function updateFilterTabs() {
   elements.listTitle.textContent = titles[state.filter];
 }
 
-function renderTasks() {
+function renderTasks({ animateItems = false } = {}) {
   const tasks = sortTasks(getFilteredTasks());
   elements.taskList.innerHTML = "";
+  elements.taskList.classList.toggle("is-entering", animateItems);
   elements.emptyState.hidden = tasks.length > 0;
 
   if (tasks.length === 0) {
@@ -207,7 +242,7 @@ function renderTasks() {
 
   const fragment = document.createDocumentFragment();
 
-  tasks.forEach((task) => {
+  tasks.forEach((task, index) => {
     const item = elements.template.content.firstElementChild.cloneNode(true);
     const statusButton = item.querySelector(".status-button");
     const title = item.querySelector(".task-title");
@@ -218,6 +253,7 @@ function renderTasks() {
     const badgeInfo = getDueBadge(task);
 
     item.dataset.id = task.id;
+    item.style.setProperty("--item-delay", `${Math.min(index, 8) * 24}ms`);
     item.classList.toggle("is-completed", task.completed);
     const urgencyClass = getUrgencyClass(task);
     if (urgencyClass) {
@@ -250,6 +286,31 @@ function render() {
   updateSummary();
   updateFilterTabs();
   renderTasks();
+  syncListSectionHeight();
+}
+
+function switchFilter(nextFilter) {
+  if (!nextFilter || nextFilter === state.filter) {
+    return;
+  }
+
+  window.clearTimeout(filterSwitchTimer);
+  elements.taskList.classList.add("is-switching");
+  elements.emptyState.classList.add("is-switching");
+  state.filter = nextFilter;
+  updateFilterTabs();
+
+  filterSwitchTimer = window.setTimeout(() => {
+    renderTasks({ animateItems: true });
+    syncListSectionHeight();
+    requestAnimationFrame(() => {
+      elements.taskList.classList.remove("is-switching");
+      elements.emptyState.classList.remove("is-switching");
+      window.setTimeout(() => {
+        elements.taskList.classList.remove("is-entering");
+      }, 320);
+    });
+  }, FILTER_SWITCH_MS);
 }
 
 function showMessage(message, isError = false) {
@@ -370,9 +431,10 @@ elements.taskList.addEventListener(
 
 elements.filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    state.filter = button.dataset.filter;
-    render();
+    switchFilter(button.dataset.filter);
   });
 });
+
+window.addEventListener("resize", syncListSectionHeight);
 
 render();
