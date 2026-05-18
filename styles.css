@@ -131,8 +131,7 @@ h2 {
 }
 
 .date-chip,
-.sync-chip,
-.hint-pill {
+.sync-chip {
   min-height: 36px;
   display: inline-flex;
   align-items: center;
@@ -164,6 +163,7 @@ h2 {
   grid-template-columns: 330px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  min-height: 0;
 }
 
 .side-panel {
@@ -195,13 +195,6 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.hint-pill {
-  min-height: 30px;
-  padding: 0 9px;
-  color: var(--quiet);
-  font-size: 0.78rem;
 }
 
 .task-form {
@@ -362,25 +355,53 @@ input:focus {
 }
 
 .list-section {
+  max-height: calc(100vh - 30px);
+  overflow: auto;
+  scrollbar-color: rgba(30, 37, 33, 0.24) transparent;
+  scrollbar-width: thin;
+}
+
+.list-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.list-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list-section::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(30, 37, 33, 0.24);
+  background-clip: content-box;
+}
+
+.list-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(30, 37, 33, 0.34);
+  background-clip: content-box;
+}
+
+.list-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  background: var(--surface);
+  box-shadow: 0 8px 18px rgba(46, 44, 37, 0.08);
 }
 
 .list-toolbar {
   align-items: end;
   padding: 18px 20px;
   border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .list-toolbar h2 {
   margin-bottom: 4px;
   font-size: 1.55rem;
-}
-
-.list-toolbar p:last-child {
-  margin-bottom: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-  font-weight: 700;
 }
 
 .segmented {
@@ -415,19 +436,27 @@ input:focus {
 .list-head,
 .task-item {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 142px 50px;
+  grid-template-columns: 64px minmax(0, 1fr) 142px 64px;
   align-items: center;
 }
 
 .list-head {
   min-height: 38px;
   padding: 0 20px;
-  border-bottom: 1px solid var(--line);
   background: #f8f6ef;
   color: var(--quiet);
   font-size: 0.74rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.list-head span {
+  text-align: center;
+}
+
+.list-head span:nth-child(2) {
+  padding-left: 40px;
+  text-align: left;
 }
 
 .task-list {
@@ -498,21 +527,23 @@ input:focus {
   text-decoration: line-through;
 }
 
-.status-button,
-.delete-button {
-  width: 34px;
-  height: 34px;
+.status-button {
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  justify-self: center;
+  border-radius: 6px;
   font-weight: 900;
 }
 
 .status-button {
-  border: 2px solid var(--teal);
+  border: 1px solid var(--teal);
   background: var(--surface);
   color: var(--teal);
+  font-size: 0.9rem;
+  box-shadow: inset 0 0 0 1px rgba(14, 116, 107, 0.18);
 }
 
 .status-button:hover {
@@ -521,8 +552,9 @@ input:focus {
 
 .task-item.is-completed .status-button {
   border-color: var(--green);
-  background: var(--green-soft);
-  color: var(--green);
+  background: var(--green);
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .task-content {
@@ -549,7 +581,7 @@ input:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: start;
+  justify-self: center;
   padding: 0 10px;
   border-radius: 999px;
   font-size: 0.8rem;
@@ -585,14 +617,31 @@ input:focus {
 }
 
 .delete-button {
+  width: 48px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--quiet);
-  font-size: 1.35rem;
+  font-size: 0.8rem;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
-    color 0.18s ease;
+    color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.task-item:hover .delete-button,
+.task-item:focus-within .delete-button,
+.task-item:has(.note-row:not([hidden])) .delete-button {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .delete-button:hover {
@@ -603,11 +652,7 @@ input:focus {
 
 .note-row {
   grid-column: 2 / 5;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
-  gap: 8px;
   margin-top: 10px;
-  padding-right: 2px;
 }
 
 .note-row[hidden] {
@@ -625,26 +670,6 @@ input:focus {
 
 .note-input::placeholder {
   color: #a7aca5;
-}
-
-.note-delete-button {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--quiet);
-  font-size: 1.12rem;
-  font-weight: 900;
-}
-
-.note-delete-button:hover {
-  border-color: var(--red-soft);
-  background: var(--red-soft);
-  color: var(--red);
 }
 
 .empty-state {
@@ -719,13 +744,13 @@ input:focus {
   }
 
   .task-item {
-    grid-template-columns: 44px minmax(0, 1fr) 42px;
+    grid-template-columns: 44px minmax(0, 1fr) 54px;
     gap: 8px;
   }
 
   .due-badge {
     grid-column: 2;
-    justify-self: start;
+    justify-self: center;
     margin-top: 7px;
   }
 

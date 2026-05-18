@@ -15,7 +15,6 @@ const elements = {
   doneCount: document.querySelector("#doneCount"),
   urgentCount: document.querySelector("#urgentCount"),
   listTitle: document.querySelector("#listTitle"),
-  listSubtitle: document.querySelector("#listSubtitle"),
   taskList: document.querySelector("#taskList"),
   emptyState: document.querySelector("#emptyState"),
   template: document.querySelector("#taskTemplate"),
@@ -181,14 +180,12 @@ function updateFilterTabs() {
   });
 
   const titles = {
-    open: ["未完成事项", "按截止日期从近到远排序"],
-    done: ["已完成事项", "最近完成的事项排在前面"],
-    all: ["全部事项", "未完成事项优先显示"],
+    open: "未完成事项",
+    done: "已完成事项",
+    all: "全部事项",
   };
 
-  const [title, subtitle] = titles[state.filter];
-  elements.listTitle.textContent = title;
-  elements.listSubtitle.textContent = subtitle;
+  elements.listTitle.textContent = titles[state.filter];
 }
 
 function renderTasks() {
@@ -321,14 +318,6 @@ elements.taskList.addEventListener("click", (event) => {
     showMessage("已删除事项。");
   }
 
-  if (button.dataset.action === "delete-note") {
-    task.note = "";
-    if (state.activeNoteId === task.id) {
-      state.activeNoteId = null;
-    }
-    showMessage("已删除补充说明。");
-  }
-
   saveTasks();
   render();
 });
@@ -350,6 +339,34 @@ elements.taskList.addEventListener("input", (event) => {
   state.activeNoteId = task.id;
   saveTasks();
 });
+
+elements.taskList.addEventListener(
+  "blur",
+  (event) => {
+    const noteInput = event.target.closest(".note-input");
+    if (!noteInput) {
+      return;
+    }
+
+    const item = noteInput.closest("[data-id]");
+    const task = state.tasks.find((current) => current.id === item.dataset.id);
+
+    if (!task) {
+      return;
+    }
+
+    task.note = noteInput.value.trim();
+    if (!task.note && state.activeNoteId === task.id) {
+      state.activeNoteId = null;
+      saveTasks();
+      render();
+      return;
+    }
+
+    saveTasks();
+  },
+  true,
+);
 
 elements.filterButtons.forEach((button) => {
   button.addEventListener("click", () => {

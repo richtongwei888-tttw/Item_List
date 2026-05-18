@@ -30,7 +30,6 @@
                 <p class="kicker">Quick Capture</p>
                 <h2 id="addTaskTitle">新增事项</h2>
               </div>
-              <span class="hint-pill">Enter</span>
             </div>
 
             <form id="taskForm" class="task-form">
@@ -90,30 +89,30 @@
         </aside>
 
         <section class="list-section" aria-labelledby="listTitle">
-          <div class="list-toolbar">
-            <div>
-              <p class="kicker">Task Ledger</p>
-              <h2 id="listTitle">未完成事项</h2>
-              <p id="listSubtitle">按截止日期从近到远排序</p>
+          <div class="list-sticky-header">
+            <div class="list-toolbar">
+              <div>
+                <p class="kicker">Task Ledger</p>
+                <h2 id="listTitle">未完成事项</h2>
+              </div>
+              <div class="segmented" role="tablist" aria-label="筛选事项">
+                <button class="segment is-active" type="button" role="tab" aria-selected="true" data-filter="open">
+                  未完成
+                </button>
+                <button class="segment" type="button" role="tab" aria-selected="false" data-filter="done">
+                  已完成
+                </button>
+                <button class="segment" type="button" role="tab" aria-selected="false" data-filter="all">
+                  全部
+                </button>
+              </div>
             </div>
-            <div class="segmented" role="tablist" aria-label="筛选事项">
-              <button class="segment is-active" type="button" role="tab" aria-selected="true" data-filter="open">
-                未完成
-              </button>
-              <button class="segment" type="button" role="tab" aria-selected="false" data-filter="done">
-                已完成
-              </button>
-              <button class="segment" type="button" role="tab" aria-selected="false" data-filter="all">
-                全部
-              </button>
-            </div>
-          </div>
 
-          <div class="list-head" aria-hidden="true">
-            <span>状态</span>
-            <span>事项</span>
-            <span>期限</span>
-            <span>操作</span>
+            <div class="list-head" aria-hidden="true">
+              <span>状态</span>
+              <span>事项</span>
+              <span>期限</span>
+            </div>
           </div>
 
           <ul id="taskList" class="task-list"></ul>
@@ -134,14 +133,9 @@
           <time class="date-text"></time>
         </div>
         <span class="due-badge"></span>
-        <button class="delete-button" type="button" data-action="delete" title="删除事项" aria-label="删除事项">
-          ×
-        </button>
+        <button class="delete-button" type="button" data-action="delete" title="删除事项" aria-label="删除事项">删除</button>
         <div class="note-row" hidden>
           <input class="note-input" type="text" maxlength="160" placeholder="补充说明..." autocomplete="off" />
-          <button class="note-delete-button" type="button" data-action="delete-note" title="删除补充说明" aria-label="删除补充说明">
-            ×
-          </button>
         </div>
       </li>
     </template>
