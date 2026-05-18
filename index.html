@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>事项清单</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="brand-lockup">
+          <span class="app-mark" aria-hidden="true">✓</span>
+          <div>
+            <p class="eyebrow">Item List</p>
+            <h1>事项清单</h1>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="date-chip" id="todayLabel" aria-label="今天日期"></span>
+          <span class="sync-chip">本地保存</span>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="清单工作台">
+        <aside class="side-panel">
+          <section class="entry-panel" aria-labelledby="addTaskTitle">
+            <div class="section-heading">
+              <div>
+                <p class="kicker">Quick Capture</p>
+                <h2 id="addTaskTitle">新增事项</h2>
+              </div>
+              <span class="hint-pill">Enter</span>
+            </div>
+
+            <form id="taskForm" class="task-form">
+              <div class="field">
+                <label for="taskTitle">事项内容</label>
+                <input
+                  id="taskTitle"
+                  name="taskTitle"
+                  type="text"
+                  maxlength="80"
+                  placeholder="例如：整理本周采购清单"
+                  autocomplete="off"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="dueDate">截止日期</label>
+                <input id="dueDate" name="dueDate" type="date" required />
+              </div>
+              <button class="primary-button" type="submit">
+                <span aria-hidden="true">+</span>
+                <span>添加事项</span>
+              </button>
+            </form>
+            <p id="formMessage" class="form-message" aria-live="polite"></p>
+          </section>
+
+          <section class="focus-panel" aria-label="今日概览">
+            <p class="kicker">Today</p>
+            <div class="focus-number-row">
+              <strong id="focusOpenCount">0</strong>
+              <span>未完成</span>
+            </div>
+            <div class="progress-copy">
+              <span id="progressText">0% 完成</span>
+              <span id="totalCount">0 项</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progressBar"></span>
+            </div>
+          </section>
+
+          <section class="summary-grid" aria-label="事项统计">
+            <article class="metric">
+              <span>待处理</span>
+              <strong id="openCount">0</strong>
+            </article>
+            <article class="metric">
+              <span>已完成</span>
+              <strong id="doneCount">0</strong>
+            </article>
+            <article class="metric">
+              <span>近 3 天</span>
+              <strong id="urgentCount">0</strong>
+            </article>
+          </section>
+        </aside>
+
+        <section class="list-section" aria-labelledby="listTitle">
+          <div class="list-toolbar">
+            <div>
+              <p class="kicker">Task Ledger</p>
+              <h2 id="listTitle">未完成事项</h2>
+              <p id="listSubtitle">按截止日期从近到远排序</p>
+            </div>
+            <div class="segmented" role="tablist" aria-label="筛选事项">
+              <button class="segment is-active" type="button" role="tab" aria-selected="true" data-filter="open">
+                未完成
+              </button>
+              <button class="segment" type="button" role="tab" aria-selected="false" data-filter="done">
+                已完成
+              </button>
+              <button class="segment" type="button" role="tab" aria-selected="false" data-filter="all">
+                全部
+              </button>
+            </div>
+          </div>
+
+          <div class="list-head" aria-hidden="true">
+            <span>状态</span>
+            <span>事项</span>
+            <span>期限</span>
+            <span>操作</span>
+          </div>
+
+          <ul id="taskList" class="task-list"></ul>
+
+          <div id="emptyState" class="empty-state" hidden>
+            <strong>这里还没有事项</strong>
+            <p>添加一条事项后，它会出现在这张工作清单里。</p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="taskTemplate">
+      <li class="task-item">
+        <button class="status-button" type="button" data-action="toggle"></button>
+        <div class="task-content">
+          <span class="task-title"></span>
+          <time class="date-text"></time>
+        </div>
+        <span class="due-badge"></span>
+        <button class="delete-button" type="button" data-action="delete" title="删除事项" aria-label="删除事项">
+          ×
+        </button>
+        <div class="note-row" hidden>
+          <input class="note-input" type="text" maxlength="160" placeholder="补充说明..." autocomplete="off" />
+          <button class="note-delete-button" type="button" data-action="delete-note" title="删除补充说明" aria-label="删除补充说明">
+            ×
+          </button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
