@@ -20,6 +20,7 @@
   --motion-fast: 0.16s;
   --motion-base: 0.24s;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-pop: cubic-bezier(0.18, 1.35, 0.32, 1);
   --task-row-height: 76px;
   color-scheme: light;
   font-family:
@@ -522,6 +523,10 @@ input:focus {
   animation-delay: var(--item-delay, 0ms);
 }
 
+.task-list.is-completing-task {
+  grid-auto-rows: auto;
+}
+
 .task-item {
   height: var(--task-row-height);
   min-height: var(--task-row-height);
@@ -533,6 +538,13 @@ input:focus {
   transition:
     background 0.18s ease,
     box-shadow 0.18s ease;
+}
+
+.task-item.is-completing {
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  animation: task-complete-collapse 0.46s 0.34s var(--ease-out) forwards;
+  will-change: height, min-height, padding, opacity, transform;
 }
 
 .task-item:hover {
@@ -594,6 +606,8 @@ input:focus {
   justify-self: center;
   border-radius: 6px;
   font-weight: 900;
+  overflow: hidden;
+  position: relative;
 }
 
 .status-button {
@@ -604,8 +618,46 @@ input:focus {
   box-shadow: inset 0 0 0 1px rgba(14, 116, 107, 0.18);
 }
 
+.status-button::before {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--green);
+  content: "";
+  opacity: 0;
+  transform: scale(0.72);
+}
+
+.status-button::after {
+  width: 13px;
+  height: 8px;
+  position: relative;
+  z-index: 1;
+  border-bottom: 3px solid currentColor;
+  border-left: 3px solid currentColor;
+  content: "";
+  opacity: 0;
+  transform: rotate(-45deg) scale(0.4) translateY(-2px);
+  transform-origin: 35% 70%;
+}
+
 .status-button:hover {
   background: var(--teal-soft);
+}
+
+.task-item.is-completing .status-button {
+  border-color: var(--green);
+  background: var(--surface);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.task-item.is-completing .status-button::before {
+  animation: status-fill 0.22s var(--ease-pop) forwards;
+}
+
+.task-item.is-completing .status-button::after {
+  animation: status-check-pop 0.34s 0.1s var(--ease-pop) forwards;
 }
 
 .task-item.is-completed .status-button {
@@ -876,6 +928,65 @@ input:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes status-fill {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  68% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes status-check-pop {
+  0% {
+    opacity: 0;
+    transform: rotate(-45deg) scale(0.35) translateY(-2px);
+  }
+
+  62% {
+    opacity: 1;
+    transform: rotate(-45deg) scale(1.18) translateY(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(-45deg) scale(1) translateY(0);
+  }
+}
+
+@keyframes task-complete-collapse {
+  0% {
+    height: var(--task-row-height);
+    min-height: var(--task-row-height);
+    opacity: 1;
+    padding-bottom: 12px;
+    padding-top: 12px;
+    transform: scale(1) translateX(0);
+  }
+
+  52% {
+    opacity: 0.72;
+    transform: scale(0.96) translateX(8px);
+  }
+
+  100% {
+    height: 0;
+    min-height: 0;
+    opacity: 0;
+    padding-bottom: 0;
+    padding-top: 0;
+    transform: scale(0.84) translateX(28px);
   }
 }
 

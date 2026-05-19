@@ -1,6 +1,8 @@
 const STORAGE_KEY = "item-list.tasks.v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FILTER_SWITCH_MS = 120;
+const COMPLETION_EXIT_MS = 860;
+const COMPLETION_COLLAPSE_DELAY_MS = 340;
 const COMPACT_LIST_QUERY = "(max-width: 720px)";
 const MAX_VISIBLE_TASKS = 11;
 
@@ -34,7 +36,7 @@ const state = {
 
 let filterSwitchTimer = null;
 
-function syncListSectionHeight() {
+function syncListSectionHeight({ taskCountDelta = 0 } = {}) {
   if (window.matchMedia(COMPACT_LIST_QUERY).matches) {
     elements.listSection.style.height = "";
     elements.taskList.style.height = "";
@@ -46,7 +48,8 @@ function syncListSectionHeight() {
 
   if (elements.emptyState.hidden) {
     const rowHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--task-row-height")) || 76;
-    const visibleTaskCount = Math.min(elements.taskList.children.length, MAX_VISIBLE_TASKS);
+    const taskCount = Math.max(elements.taskList.children.length + taskCountDelta, 0);
+    const visibleTaskCount = Math.min(taskCount, MAX_VISIBLE_TASKS);
     const listHeight = visibleTaskCount * rowHeight;
     elements.taskList.style.height = `${Math.ceil(listHeight)}px`;
     elements.listSection.style.height = `${Math.ceil(headerHeight + listHeight)}px`;
@@ -318,6 +321,46 @@ function showMessage(message, isError = false) {
   elements.formMessage.classList.toggle("is-error", isError);
 }
 
+function syncCompletionListHeight(task, item) {
+  if (state.filter !== "open") {
+    return;
+  }
+
+  const expectedFilter = state.filter;
+  window.setTimeout(() => {
+    if (state.filter !== expectedFilter || !item.isConnected || task.completed) {
+      return;
+    }
+
+    syncListSectionHeight({ taskCountDelta: -1 });
+  }, COMPLETION_COLLAPSE_DELAY_MS);
+}
+
+function completeTaskWithAnimation(task, item, button) {
+  if (item.classList.contains("is-completing")) {
+    return;
+  }
+
+  item.classList.add("is-completing");
+  elements.taskList.classList.add("is-completing-task");
+  syncCompletionListHeight(task, item);
+  button.disabled = true;
+  button.setAttribute("aria-label", "正在标记完成");
+
+  if (state.activeNoteId === task.id) {
+    state.activeNoteId = null;
+  }
+
+  window.setTimeout(() => {
+    task.completed = true;
+    task.completedAt = new Date().toISOString();
+    showMessage("已移入已完成事项。");
+    saveTasks();
+    render();
+    elements.taskList.classList.remove("is-completing-task");
+  }, COMPLETION_EXIT_MS);
+}
+
 elements.form.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -366,9 +409,14 @@ elements.taskList.addEventListener("click", (event) => {
   }
 
   if (button.dataset.action === "toggle") {
-    task.completed = !task.completed;
-    task.completedAt = task.completed ? new Date().toISOString() : null;
-    showMessage(task.completed ? "已移入已完成事项。" : "已恢复为未完成事项。");
+    if (!task.completed) {
+      completeTaskWithAnimation(task, item, button);
+      return;
+    }
+
+    task.completed = false;
+    task.completedAt = null;
+    showMessage("已恢复为未完成事项。");
   }
 
   if (button.dataset.action === "delete") {
