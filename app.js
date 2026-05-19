@@ -3,13 +3,25 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const FILTER_SWITCH_MS = 120;
 const COMPLETION_EXIT_MS = 860;
 const COMPLETION_COLLAPSE_DELAY_MS = 340;
+const NOTE_TRANSITION_MS = 260;
 const COMPACT_LIST_QUERY = "(max-width: 720px)";
 const MAX_VISIBLE_TASKS = 11;
+const PRIORITY_META = {
+  low: { label: "低", tone: "low" },
+  normal: { label: "普通", tone: "normal" },
+  high: { label: "高", tone: "high" },
+};
+const PRIORITY_RANK = {
+  low: 0,
+  normal: 1,
+  high: 2,
+};
 
 const elements = {
   form: document.querySelector("#taskForm"),
   titleInput: document.querySelector("#taskTitle"),
   dueInput: document.querySelector("#dueDate"),
+  priorityInput: document.querySelector('[name="priority"]:checked'),
   formMessage: document.querySelector("#formMessage"),
   todayLabel: document.querySelector("#todayLabel"),
   focusOpenCount: document.querySelector("#focusOpenCount"),
@@ -36,6 +48,29 @@ const state = {
 
 let filterSwitchTimer = null;
 
+function getTaskRowHeight() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--task-row-height")) || 76;
+}
+
+function getVisibleTaskListHeight({ taskCountDelta = 0 } = {}) {
+  const rowHeight = getTaskRowHeight();
+  const taskItems = [...elements.taskList.children];
+  const taskCount = Math.max(elements.taskList.children.length + taskCountDelta, 0);
+  const visibleTaskCount = Math.min(taskCount, MAX_VISIBLE_TASKS);
+  const visibleItems = taskItems.slice(0, visibleTaskCount);
+  const measuredHeight = visibleItems.reduce((total, item) => {
+    const visibleRowHeight = item.classList.contains("is-note-closing")
+      ? rowHeight
+      : item.classList.contains("is-note-open")
+      ? Math.max(item.getBoundingClientRect().height, item.scrollHeight)
+      : item.getBoundingClientRect().height;
+
+    return total + visibleRowHeight;
+  }, 0);
+
+  return measuredHeight || visibleTaskCount * rowHeight;
+}
+
 function syncListSectionHeight({ taskCountDelta = 0 } = {}) {
   if (window.matchMedia(COMPACT_LIST_QUERY).matches) {
     elements.listSection.style.height = "";
@@ -47,10 +82,7 @@ function syncListSectionHeight({ taskCountDelta = 0 } = {}) {
   const headerHeight = header.getBoundingClientRect().height;
 
   if (elements.emptyState.hidden) {
-    const rowHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--task-row-height")) || 76;
-    const taskCount = Math.max(elements.taskList.children.length + taskCountDelta, 0);
-    const visibleTaskCount = Math.min(taskCount, MAX_VISIBLE_TASKS);
-    const listHeight = visibleTaskCount * rowHeight;
+    const listHeight = getVisibleTaskListHeight({ taskCountDelta });
     elements.taskList.style.height = `${Math.ceil(listHeight)}px`;
     elements.listSection.style.height = `${Math.ceil(headerHeight + listHeight)}px`;
     return;
@@ -95,6 +127,18 @@ function formatDate(value) {
 
 function getDaysUntil(value) {
   return Math.round((parseDateOnly(value) - todayStart()) / DAY_MS);
+}
+
+function normalizePriority(priority) {
+  return Object.hasOwn(PRIORITY_META, priority) ? priority : "normal";
+}
+
+function getPriorityInfo(priority) {
+  return PRIORITY_META[normalizePriority(priority)];
+}
+
+function getPriorityRank(priority) {
+  return PRIORITY_RANK[normalizePriority(priority)];
 }
 
 function getDueBadge(task) {
@@ -145,11 +189,12 @@ function getUrgencyClass(task) {
   return "";
 }
 
-function createTask(title, dueDate) {
+function createTask(title, dueDate, priority = "normal") {
   return {
     id: `${Date.now()}-${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(16).slice(2)}`,
     title,
     dueDate,
+    priority: normalizePriority(priority),
     note: "",
     completed: false,
     createdAt: new Date().toISOString(),
@@ -170,6 +215,11 @@ function sortTasks(tasks) {
     const dueDelta = parseDateOnly(a.dueDate).getTime() - parseDateOnly(b.dueDate).getTime();
     if (dueDelta !== 0) {
       return dueDelta;
+    }
+
+    const priorityDelta = getPriorityRank(b.priority) - getPriorityRank(a.priority);
+    if (priorityDelta !== 0) {
+      return priorityDelta;
     }
 
     return new Date(a.createdAt) - new Date(b.createdAt);
@@ -249,13 +299,17 @@ function renderTasks({ animateItems = false } = {}) {
     const item = elements.template.content.firstElementChild.cloneNode(true);
     const statusButton = item.querySelector(".status-button");
     const title = item.querySelector(".task-title");
+    const priorityPill = item.querySelector(".priority-pill");
     const badge = item.querySelector(".due-badge");
     const date = item.querySelector(".date-text");
     const noteRow = item.querySelector(".note-row");
     const noteInput = item.querySelector(".note-input");
     const badgeInfo = getDueBadge(task);
+    const priorityInfo = getPriorityInfo(task.priority);
+    const isActiveNote = state.activeNoteId === task.id;
 
     item.dataset.id = task.id;
+    item.dataset.priority = normalizePriority(task.priority);
     item.style.setProperty("--item-delay", `${Math.min(index, 8) * 24}ms`);
     item.classList.toggle("is-completed", task.completed);
     const urgencyClass = getUrgencyClass(task);
@@ -266,12 +320,15 @@ function renderTasks({ animateItems = false } = {}) {
     statusButton.title = task.completed ? "恢复为未完成" : "标记完成";
     statusButton.setAttribute("aria-label", task.completed ? "恢复为未完成" : "标记完成");
     title.textContent = task.title;
+    priorityPill.textContent = priorityInfo.label;
+    priorityPill.className = `priority-pill is-${priorityInfo.tone}`;
     badge.textContent = badgeInfo.text;
     badge.className = `due-badge is-${badgeInfo.tone}`;
     date.textContent = `截止：${formatDate(task.dueDate)}`;
     date.dateTime = task.dueDate;
     noteInput.value = task.note || "";
-    noteRow.hidden = state.activeNoteId !== task.id && !task.note;
+    noteRow.hidden = false;
+    noteInput.tabIndex = isActiveNote ? 0 : -1;
 
     fragment.appendChild(item);
   });
@@ -336,6 +393,48 @@ function syncCompletionListHeight(task, item) {
   }, COMPLETION_COLLAPSE_DELAY_MS);
 }
 
+function findTaskItem(taskId) {
+  return document.querySelector(`[data-id="${taskId}"]`);
+}
+
+function openTaskNote(task, item) {
+  if (item?.classList.contains("is-note-open")) {
+    closeTaskNote(task, item);
+    return;
+  }
+
+  state.activeNoteId = task.id;
+  render();
+
+  const nextItem = findTaskItem(task.id);
+  if (!nextItem) {
+    return;
+  }
+
+  syncListSectionHeight();
+  requestAnimationFrame(() => {
+    nextItem.classList.add("is-note-open");
+    syncListSectionHeight();
+    requestAnimationFrame(() => {
+      nextItem.querySelector(".note-input")?.focus();
+    });
+  });
+
+  window.setTimeout(syncListSectionHeight, NOTE_TRANSITION_MS);
+}
+
+function closeTaskNote(task, item) {
+  item.classList.add("is-note-closing");
+  item.classList.remove("is-note-open");
+  syncListSectionHeight();
+
+  window.setTimeout(() => {
+    state.activeNoteId = null;
+    saveTasks();
+    render();
+  }, NOTE_TRANSITION_MS);
+}
+
 function completeTaskWithAnimation(task, item, button) {
   if (item.classList.contains("is-completing")) {
     return;
@@ -366,13 +465,14 @@ elements.form.addEventListener("submit", (event) => {
 
   const title = elements.titleInput.value.trim();
   const dueDate = elements.dueInput.value;
+  const priority = document.querySelector('[name="priority"]:checked')?.value || "normal";
 
   if (!title || !dueDate) {
     showMessage("请填写事项内容和截止日期。", true);
     return;
   }
 
-  state.tasks.push(createTask(title, dueDate));
+  state.tasks.push(createTask(title, dueDate, priority));
   state.filter = "open";
   saveTasks();
   elements.form.reset();
@@ -396,11 +496,7 @@ elements.taskList.addEventListener("click", (event) => {
   }
 
   if (!button && !event.target.closest(".note-input")) {
-    state.activeNoteId = task.id;
-    render();
-    requestAnimationFrame(() => {
-      document.querySelector(`[data-id="${task.id}"] .note-input`)?.focus();
-    });
+    openTaskNote(task, item);
     return;
   }
 
@@ -465,10 +561,8 @@ elements.taskList.addEventListener(
     }
 
     task.note = noteInput.value.trim();
-    if (!task.note && state.activeNoteId === task.id) {
-      state.activeNoteId = null;
-      saveTasks();
-      render();
+    if (state.activeNoteId === task.id) {
+      closeTaskNote(task, item);
       return;
     }
 

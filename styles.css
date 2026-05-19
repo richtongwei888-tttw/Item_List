@@ -219,6 +219,20 @@ label {
   font-weight: 800;
 }
 
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 input {
   width: 100%;
   min-height: 46px;
@@ -241,6 +255,66 @@ input:hover {
 input:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 4px rgba(14, 116, 107, 0.12);
+}
+
+.priority-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.priority-option {
+  min-width: 0;
+  color: var(--muted);
+}
+
+.priority-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.priority-option span {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 900;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.priority-option:hover span {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.priority-option input:focus-visible + span {
+  outline: 3px solid rgba(14, 116, 107, 0.22);
+  outline-offset: 2px;
+}
+
+.priority-option input:checked + span {
+  border-color: rgba(14, 116, 107, 0.32);
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  box-shadow: inset 0 0 0 1px rgba(14, 116, 107, 0.1);
 }
 
 .primary-button {
@@ -527,15 +601,22 @@ input:focus {
   grid-auto-rows: auto;
 }
 
+.task-list:has(.task-item.is-note-open),
+.task-list:has(.task-item.is-note-closing) {
+  grid-auto-rows: auto;
+}
+
 .task-item {
-  height: var(--task-row-height);
+  height: auto;
   min-height: var(--task-row-height);
+  max-height: var(--task-row-height);
   padding: 12px 20px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 254, 250, 0.72);
   position: relative;
   overflow: hidden;
   transition:
+    max-height 0.26s var(--ease-out),
     background 0.18s ease,
     box-shadow 0.18s ease;
 }
@@ -545,6 +626,13 @@ input:focus {
   transform-origin: 50% 50%;
   animation: task-complete-collapse 0.46s 0.34s var(--ease-out) forwards;
   will-change: height, min-height, padding, opacity, transform;
+}
+
+.task-item.is-note-open {
+  height: auto;
+  min-height: calc(var(--task-row-height) + 44px);
+  max-height: calc(var(--task-row-height) + 62px);
+  align-items: start;
 }
 
 .task-item:hover {
@@ -674,10 +762,52 @@ input:focus {
   padding-right: 18px;
 }
 
+.task-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .task-title {
   overflow-wrap: anywhere;
   font-size: 1rem;
   font-weight: 900;
+}
+
+.priority-pill {
+  min-width: 34px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.priority-pill.is-high {
+  border-color: rgba(185, 75, 66, 0.24);
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.priority-pill.is-normal {
+  border-color: rgba(14, 116, 107, 0.18);
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+}
+
+.priority-pill.is-low {
+  background: #eceae2;
+  color: #73796f;
 }
 
 .date-text {
@@ -749,7 +879,7 @@ input:focus {
 
 .task-item:hover .delete-button,
 .task-item:focus-within .delete-button,
-.task-item:has(.note-row:not([hidden])) .delete-button {
+.task-item.is-note-open .delete-button {
   opacity: 1;
   pointer-events: auto;
 }
@@ -762,11 +892,29 @@ input:focus {
 
 .note-row {
   grid-column: 2 / 5;
-  margin-top: 10px;
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    max-height 0.26s var(--ease-out),
+    margin-top 0.24s var(--ease-out),
+    opacity 0.18s ease,
+    transform 0.22s var(--ease-out);
 }
 
 .note-row[hidden] {
   display: none;
+}
+
+.task-item.is-note-open .note-row {
+  max-height: 52px;
+  margin-top: 10px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .note-input {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>事项清单</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=note-motion" />
   </head>
   <body>
     <main class="app-shell">
@@ -49,6 +49,23 @@
                 <label for="dueDate">截止日期</label>
                 <input id="dueDate" name="dueDate" type="date" required />
               </div>
+              <fieldset class="field priority-field">
+                <legend>重要性</legend>
+                <div class="priority-options" aria-label="选择事项重要性">
+                  <label class="priority-option">
+                    <input type="radio" name="priority" value="low" />
+                    <span>低</span>
+                  </label>
+                  <label class="priority-option">
+                    <input type="radio" name="priority" value="normal" checked />
+                    <span>普通</span>
+                  </label>
+                  <label class="priority-option">
+                    <input type="radio" name="priority" value="high" />
+                    <span>高</span>
+                  </label>
+                </div>
+              </fieldset>
               <button class="primary-button" type="submit">
                 <span aria-hidden="true">+</span>
                 <span>添加事项</span>
@@ -129,7 +146,10 @@
       <li class="task-item">
         <button class="status-button" type="button" data-action="toggle"></button>
         <div class="task-content">
-          <span class="task-title"></span>
+          <span class="task-title-line">
+            <span class="task-title"></span>
+            <span class="priority-pill"></span>
+          </span>
           <time class="date-text"></time>
         </div>
         <span class="due-badge"></span>
@@ -140,6 +160,6 @@
       </li>
     </template>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=note-motion"></script>
   </body>
 </html>
